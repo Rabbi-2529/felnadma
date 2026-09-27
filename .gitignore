@@ -1,0 +1,35 @@
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Logs, backups and database dumps (may contain customer data)
+error_log
+*.zip
+*.sql
+
+# Malware found on the server — never commit
+/app/Http/Middleware/index.php
+/asset/images/support/inputs.php
+/resources/views/admin/article/inputs.php
+/style.php
+/wp-22.php
+/admin.php
+/pdo_check.php
+/medicine/
+
+# Planted .htaccess files in sub-folders (only the root and routes ones are real)
+**/.htaccess
+!/.htaccess
+!/routes/.htaccess
+
+# API document with sample keys
+/asset/images/fdma_api.docx
