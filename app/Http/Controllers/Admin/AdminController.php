@@ -18,6 +18,7 @@ use App\Model\Navbar;
 use App\Model\Article; 
 use App\Model\MetaTag;
 use App\Model\Offer;
+use App\Model\SmsServicePage;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
@@ -49,58 +50,48 @@ class AdminController extends Controller
     }
 
 
-public function dashboard()
-{
-    // Get Order model
-    $orderModel = new \App\Model\Order();
-    
-    // Basic stats
-    $totalOrders = \App\Model\Order::count();
-    $pendingOrders = \App\Model\Order::where('order_status', 'pending')->count();
-    $confirmedOrders = \App\Model\Order::where('order_status', 'confirmed')->count();
-    $totalRevenue = \App\Model\Order::where('order_status', 'confirmed')->sum('package_price');
-    
-    // Recent orders (last 10)
-    $recentOrders = \App\Model\Order::orderBy('id', 'desc')->take(10)->get();
-    
-    // Recent OTP verifications
-    $recentOtp = \App\Model\Order::whereNotNull('otp_code')
-        ->orderBy('id', 'desc')
-        ->take(10)
-        ->get();
-    
-    // Time-based stats
-    $todayOrders = \App\Model\Order::whereDate('created_at', date('Y-m-d'))->count();
-    $weekOrders = \App\Model\Order::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count();
-    $monthOrders = \App\Model\Order::whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->count();
-    
-    // OTP stats
-    $totalOtpAttempts = \App\Model\Order::whereNotNull('otp_code')->count();
-    $successfulOtp = \App\Model\Order::where('otp_status', 'verified')->count();
-    $otpSuccessRate = $totalOtpAttempts > 0 ? round(($successfulOtp / $totalOtpAttempts) * 100) : 0;
-    
-    // Top packages
-    $topPackages = \App\Model\Order::select('package_name')
-        ->selectRaw('COUNT(*) as total_orders')
-        ->selectRaw('SUM(package_price) as total_revenue')
+public function dashboard(){
+      $totalOrders = Order::count();
+      $pendingOrders = Order::where('order_status', 'pending')->count();
+      $confirmedOrders = Order::where('order_status', 'confirmed')->count();
+      $todayOrders = Order::whereDate('created_at', today())->count();
+      $weekOrders = Order::where('created_at', '>=', now()->startOfWeek())->count();
+      $monthOrders = Order::where('created_at', '>=', now()->startOfMonth())->count();
+      $uniqueCustomers = Order::distinct('client_phone')->count('client_phone');
+
+      $otpTotal = Order::whereNotNull('otp_code')->count();
+      $otpVerified = Order::where('otp_status', 'verified')->count();
+      $otpSuccessRate = $otpTotal > 0 ? round($otpVerified / $otpTotal * 100) : 0;
+
+      $activePackages = Package::count();
+      $servicePages = SmsServicePage::count();
+
+      $recentOrders = Order::orderBy('id', 'desc')->take(6)->get();
+      $recentOtp = Order::whereNotNull('otp_code')->orderBy('id', 'desc')->take(6)->get();
+      $topPackages = Order::selectRaw('package_name, count(*) as total_orders')
         ->whereNotNull('package_name')
         ->groupBy('package_name')
         ->orderBy('total_orders', 'desc')
         ->take(5)
         ->get();
-    
-    // Active packages count
-    $activePackages = \App\Model\Package::count();
-    
-    // Unique customers
-    $uniqueCustomers = \App\Model\Order::distinct('client_email')->count('client_email');
-    
-    return view('admin.dashboard', compact(
-        'totalOrders', 'pendingOrders', 'confirmedOrders', 'totalRevenue',
-        'recentOrders', 'recentOtp', 'todayOrders', 'weekOrders', 'monthOrders',
-        'otpSuccessRate', 'topPackages', 'activePackages', 'uniqueCustomers'
-    ));
-}
+
+      // Orders per day for the last 14 days (dashboard chart)
+      $dailyCounts = Order::selectRaw('DATE(created_at) as day, count(*) as total')
+        ->where('created_at', '>=', today()->subDays(13))
+        ->groupBy('day')
+        ->pluck('total', 'day');
+      $orderTrend = collect(range(13, 0))->map(function ($daysAgo) use ($dailyCounts) {
+        $day = today()->subDays($daysAgo);
+        return ['label' => $day->format('d M'), 'total' => (int) ($dailyCounts[$day->toDateString()] ?? 0)];
+      });
+
+      return view('admin.dashboard', compact(
+        'totalOrders', 'pendingOrders', 'confirmedOrders', 'todayOrders', 'weekOrders', 'monthOrders',
+        'uniqueCustomers', 'otpSuccessRate', 'activePackages', 'servicePages',
+        'recentOrders', 'recentOtp', 'topPackages', 'orderTrend'
+      ));
+    }
+
     public function settings(){
       $adminDetails = Admin::where('username', Session::get('adminSession'))->first();
       return view('admin.settings', compact('adminDetails'));
@@ -133,6 +124,11 @@ public function dashboard()
     }
 
 
+    // Page choices for meta tags: navbar pages plus the SMS Services sub-pages (Rate + admin-managed pages)
+    private function metaPages(){
+      return Navbar::get()->concat(SmsServicePage::pageOptions());
+    }
+
     public function addMeta(Request $request){
       if ($request->isMethod('post')) {
         $metaTag = new MetaTag;
@@ -153,7 +149,7 @@ public function dashboard()
         $metaTag->save();
         return redirect('/admin/view_meta_tag')->with('success_message', 'Data Added Successfully !!');
       }
-      $navbar = Navbar::get();
+      $navbar = $this->metaPages();
       return view('admin.metatag.add_meta_tag', compact('navbar'));
     }
 
@@ -187,7 +183,7 @@ public function dashboard()
         $metaTag->save();
         return redirect('/admin/view_meta_tag')->with('success_message', 'Data Updated Successfully !!');
       }
-      $navbar = Navbar::get();
+      $navbar = $this->metaPages();
       $metaTag = MetaTag::find($id);
       return view('admin.metatag.edit_meta_tag')->with(compact('metaTag', 'navbar'));
     }
@@ -254,6 +250,16 @@ public function dashboard()
     }
     $offer = Offer::find($id);
     return view('admin.offer.edit_special_offer')->with(compact('offer'));
+  }
+
+
+  public function deleteSpecialOffer($id){
+    $offer = Offer::findOrFail($id);
+    if (!empty($offer->image) && file_exists('asset/images/offer/'.$offer->image)) {
+        unlink('asset/images/offer/'.$offer->image);
+    }
+    $offer->delete();
+    return redirect('/admin/view_special_offer')->with('success_message', 'Data Deleted Successfully !!');
   }
 
 

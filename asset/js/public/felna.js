@@ -24,10 +24,40 @@
   }
   if (toggle && nav) {
     toggle.addEventListener('click', function () { setNav(!doc.classList.contains('nav-open')); });
-    nav.addEventListener('click', function (e) { if (e.target.closest('a, button')) setNav(false); });
+    nav.addEventListener('click', function (e) {
+      if (e.target.closest('.sub-toggle')) return;
+      if (e.target.closest('a, button')) setNav(false);
+    });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setNav(false); });
     window.addEventListener('resize', function () { if (window.innerWidth >= 1200) setNav(false); });
   }
+
+  /* ---------- Submenus (SMS Services) ---------- */
+  var subItems = document.querySelectorAll('.nav-main .has-sub');
+  function setSub(item, open) {
+    item.classList.toggle('is-open', open);
+    var btn = item.querySelector('.sub-toggle');
+    if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  subItems.forEach(function (item) {
+    var btn = item.querySelector('.sub-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var open = !item.classList.contains('is-open');
+      subItems.forEach(function (other) { if (other !== item) setSub(other, false); });
+      setSub(item, open);
+    });
+    // On phones, start with the current section's submenu expanded
+    if (window.innerWidth < 1200 && item.querySelector('.nav-sub a.is-active')) setSub(item, true);
+  });
+  document.addEventListener('click', function (e) {
+    if (window.innerWidth < 1200) return;
+    subItems.forEach(function (item) { if (!item.contains(e.target)) setSub(item, false); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') subItems.forEach(function (item) { setSub(item, false); });
+  });
 
   /* ---------- Warm up lazy images inside carousels after load ---------- */
   window.addEventListener('load', function () {

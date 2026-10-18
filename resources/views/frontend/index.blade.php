@@ -108,6 +108,12 @@
 </section>
 @endif
 
+{{-- ========== Our SMS services (links to the SMS Services sub-pages) ========== --}}
+@include('frontend.partials.sms_service_links', [
+  'links' => $serviceLinks ?? collect(),
+  'lead' => 'Explore our SMS rates and services — pick what fits your business.',
+])
+
 {{-- ========== SMS marketing benefits ========== --}}
 @if($marketingImage || count($smsMarketing))
 <section class="section section--muted" aria-labelledby="benefits-title">

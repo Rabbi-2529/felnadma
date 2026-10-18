@@ -1,4 +1,5 @@
 @extends('frontend.layout.frontend_master')
+
 <?php
   $bankLogoFor = function ($bank) {
       $name = strtolower($bank->bank_name);
@@ -28,9 +29,177 @@
       return ['company' => ucfirst($m->mobile_company), 'account_name' => $m->account_name, 'account_number' => $m->account_number, 'reference' => $m->reference];
   })->values();
 ?>
+
+@push('styles')
+<style>
+  /* ==========================================================
+     PAY GRID — flexbox so the last (partial) row auto-centers.
+     Cards keep the ORIGINAL size (3 per row on desktop).
+     ========================================================== */
+  .pay-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+
+  .pay-grid > .pay-card {
+    flex: 0 1 calc((100% - 3rem) / 3);
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 992px) {
+    .pay-grid > .pay-card {
+      flex: 0 1 calc((100% - 1.5rem) / 2);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .pay-grid > .pay-card {
+      flex: 0 1 100%;
+    }
+  }
+
+  /* ==========================================================
+     CARD HEAD — FULL WIDTH LOGO on top, name centered below
+     ========================================================== */
+  .pay-card__head {
+    padding: 14px !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 10px;
+    border-bottom: 1px solid #eef1f5;
+  }
+
+  /* Logo takes the FULL width of the card head */
+  .pay-card__logo {
+    width: 100% !important;
+    height: 120px !important;
+    min-width: 0 !important;
+    border-radius: 12px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    box-sizing: border-box;
+  }
+
+  .pay-card__logo img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  .pay-card__logo i {
+    font-size: 44px;
+    color: #9aa3b2;
+  }
+
+  .pay-card__head h4 {
+    margin: 0 !important;
+    font-size: 17px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #1a2233;
+  }
+
+  .pay-card__head small {
+    display: block;
+    font-size: 11px;
+    color: #8a93a3;
+    margin: 2px 0 0 0;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 600;
+  }
+
+  /* ==========================================================
+     COMPACT CARD BODY — no extra spacing between rows
+     ========================================================== */
+  .pay-card__body {
+    padding: 0 !important;
+  }
+
+  .pay-row {
+    padding: 6px 14px !important;
+    margin: 0 !important;
+    border-bottom: 1px solid #eef1f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .pay-row:last-child {
+    border-bottom: none;
+  }
+
+  .pay-row > div {
+    min-width: 0;
+  }
+
+  .pay-row small {
+    display: block;
+    font-size: 10px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #9aa3b2;
+    margin: 0;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  .pay-row strong {
+    display: block;
+    font-size: 14px;
+    color: #1a2233;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  /* ==========================================================
+     COMPACT FOOT / COPY-ALL BUTTON
+     ========================================================== */
+  .pay-card__foot {
+    padding: 8px 14px 12px !important;
+    margin: 0 !important;
+  }
+
+  .pay-card__foot .btn-f {
+    padding: 8px 12px !important;
+    font-size: 13px;
+  }
+
+  /* ==========================================================
+     TIGHTER COPY BUTTON IN ROWS
+     ========================================================== */
+  .pay-row .copy-btn {
+    padding: 4px 10px !important;
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+</style>
+@endpush
+
 @section('content')
 
 <section class="page-hero page-hero--compact">
+    
   <div class="container">
     <div class="page-hero__inner">
       <span class="eyebrow eyebrow--light"><i class="fas fa-lock"></i> Secure payment</span>
@@ -50,8 +219,8 @@
     <div class="d-flex flex-wrap align-items-end justify-content-between mb-4" style="gap:1rem">
       <div class="section-head section-head--left mb-0">
         <span class="eyebrow"><i class="fas fa-building-columns"></i> Bank transfer</span>
-        <h2 class="section-title mb-1" id="bank-title">Bank account details</h2>
-        <p class="section-lead">Transfer to any of these accounts using your Order ID as the reference.</p>
+        <!--<h2 class="section-title mb-1" id="bank-title">Bank account details</h2>-->
+        <!--<p class="section-lead">Transfer to any of these accounts using your Order ID as the reference.</p>-->
       </div>
       @if($bankPayments->count())
       <button type="button" class="btn-f btn-f--outline btn-f--sm" data-copy-all="bank"><i class="fas fa-copy"></i> Copy all bank details</button>
@@ -72,12 +241,13 @@
             <i class="fas fa-building-columns"></i>
             @endif
           </div>
-          <div>
-            <h4>{{ $bank->bank_name }}</h4>
-            <small>{{ $bank->account_type ?? 'Bank account' }}</small>
-          </div>
+          <!--<div>-->
+          <!--  <h4>{{ $bank->bank_name }}</h4>-->
+          <!--  <small>{{ $bank->account_type ?? 'Bank account' }}</small>-->
+          <!--</div>-->
         </div>
         <div class="pay-card__body">
+            <div class="pay-row"><div><small>Bank name</small><strong>{{ $bank->bank_name }}</strong></div></div>
           <div class="pay-row"><div><small>Account name</small><strong>{{ $bank->account_name }}</strong></div></div>
           <div class="pay-row">
             <div><small>Account number</small><strong>{{ $bank->account_number }}</strong></div>
@@ -150,7 +320,7 @@
         </div>
         <div class="pay-card__body">
           <div class="pay-row">
-            <div><small>Account number</small><strong style="font-size:1.15rem">{{ $mobile->account_number }}</strong></div>
+            <div><small>Account number</small><strong style="font-size:1.05rem">{{ $mobile->account_number }}</strong></div>
             <button type="button" class="copy-btn" data-copy="{{ $mobile->account_number }}"><i class="fas fa-copy"></i> Copy</button>
           </div>
           <div class="pay-row"><div><small>Account name</small><strong>{{ $mobile->account_name }}</strong></div></div>
@@ -263,7 +433,8 @@
     if (bankBtn) {
       var d = bankBtn.dataset;
       copyText('Payment Link: ' + PAYMENT_LINK + '\n\nBank Details\n=============\n' + bankText({
-        account_name: d.accountName, account_number: d.accountNumber, routing_number: d.routingNumber,
+        account_name: d.accountName, account_number: d.accountNumber,Bank account
+ routing_number: d.routingNumber,
         branch_name: d.branchName, bank_name: d.bankName
       }), bankBtn);
       return;

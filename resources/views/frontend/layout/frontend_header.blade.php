@@ -2,10 +2,12 @@
   use App\Model\Logo;
   use App\Model\Navbar;
   use App\Model\HeaderContact;
+  use App\Model\SmsServicePage;
   use App\Support\Img;
   $logo = Logo::logo();
   $contact = HeaderContact::contact();
   $navbar = Navbar::navbar();
+  $smsLinks = SmsServicePage::links();
   $currentPath = '/' . trim(request()->path(), '/');
   $logoFile = !empty($logo->logo) ? $logo->logo : (!empty($logo->logo_text) ? $logo->logo_text : null);
   $phoneHref = !empty($contact->phone) ? preg_replace('/[^0-9+]/', '', $contact->phone) : null;
@@ -40,7 +42,27 @@
         @foreach($navbar as $nav)
           @if($nav->nav_route != '/')
             @php $navPath = '/' . trim(strtolower($nav->nav_route), '/'); @endphp
+            @if($navPath === '/bulk-sms-service')
+            {{-- SMS Services: parent keeps its own URL, sub-pages open from the dropdown --}}
+            @php $inSms = $currentPath === $navPath || strpos($currentPath, $navPath.'/') === 0; @endphp
+            <li class="has-sub">
+              <a class="{{ $inSms ? 'is-active' : '' }}" href="{{ url($navPath) }}" @if($currentPath === $navPath) aria-current="page" @endif>{{ $nav->nav_item }}</a>
+              <button type="button" class="sub-toggle" aria-expanded="false" aria-controls="smsSubmenu" aria-label="Show {{ $nav->nav_item }} pages"><i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+              <ul class="nav-sub" id="smsSubmenu">
+                <li><a class="{{ $currentPath === $navPath ? 'is-active' : '' }}" href="{{ url($navPath) }}"><span class="nav-sub__ico"><i class="fas fa-box-open" aria-hidden="true"></i></span> SMS Packages</a></li>
+                @foreach($smsLinks as $link)
+                <li><a class="{{ $currentPath === $link->path ? 'is-active' : '' }}" href="{{ $link->url }}" @if($currentPath === $link->path) aria-current="page" @endif>
+                  @if(!empty($link->icon_image) || !empty($link->icon_class))
+                  <span class="nav-sub__ico">@include('frontend.partials.sms_service_icon', ['link' => $link, 'size' => 18])</span>
+                  @endif
+                  {{ $link->title }}
+                </a></li>
+                @endforeach
+              </ul>
+            </li>
+            @else
             <li><a class="{{ $currentPath === $navPath ? 'is-active' : '' }}" href="{{ url(strtolower($nav->nav_route)) }}" @if($currentPath === $navPath) aria-current="page" @endif>{{ $nav->nav_item }}</a></li>
+            @endif
           @endif
         @endforeach
       </ul>

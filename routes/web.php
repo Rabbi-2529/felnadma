@@ -119,6 +119,12 @@ Route::get('/admin/delete_payment/{id}', 'Admin\PaymentController@deletePayment'
   Route::match(['get', 'post'], '/admin/update_price_info/{id}', 'Admin\PriceController@updatePriceInfo');
   Route::get('/admin/delete_price_info/{id}', 'Admin\PriceController@deletePriceInfo');
 
+  //SMS Service Page Routes (submenu pages under SMS Services)
+  Route::match(['get', 'post'], '/admin/add_sms_service_page', 'Admin\SmsServicePageController@addSmsServicePage');
+  Route::get('/admin/view_sms_service_page', 'Admin\SmsServicePageController@viewSmsServicePage');
+  Route::match(['get', 'post'], '/admin/edit_sms_service_page/{id}', 'Admin\SmsServicePageController@editSmsServicePage');
+  Route::get('/admin/delete_sms_service_page/{id}', 'Admin\SmsServicePageController@deleteSmsServicePage');
+
   //Terms Routes
   Route::match(['get', 'post'], '/admin/add_terms', 'Admin\TermsController@addTerms');
   Route::get('/admin/view_terms', 'Admin\TermsController@viewTerms');
@@ -188,6 +194,9 @@ Route::match(['get', 'post'], '/admin', 'Admin\AdminController@login');
               //Admin Routes
 Route::get('/', 'Frontend\FrontendController@index')->name('home');
 Route::get('/bulk-sms-service', 'Frontend\FrontendController@price');
+// SMS Services submenu: static Rate page first, then admin-managed pages by slug
+Route::get('/bulk-sms-service/rate', 'Frontend\FrontendController@smsRate');
+Route::get('/bulk-sms-service/{slug}', 'Frontend\FrontendController@smsServicePage')->where('slug', '[a-z0-9\-]+');
 Route::post('/content-call-request', 'Frontend\FrontendController@contentCallRequest')->name('frontend.contentCallRequest');
 Route::get('/order_request/send_otp', 'Frontend\FrontendController@sendOtp')->name('order.sendOtp');
 Route::POST('/order_request/confirm', 'Frontend\FrontendController@confirmOrder')->name('order.confirm');

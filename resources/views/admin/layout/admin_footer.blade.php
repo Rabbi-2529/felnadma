@@ -1,7 +1,6 @@
 <!--Footer-part-->
-
-<div class="row-fluid">
-  <div id="footer" class="span12"> 2020 &copy; Felna SMS.</div>
-</div>
-
+<footer class="fa-footer">
+  <span>{{ date('Y') }} &copy; Felna SMS · Bulk SMS admin</span>
+  <a href="{{ url('/') }}" target="_blank" rel="noopener">felnadma.com</a>
+</footer>
 <!--end-Footer-part-->

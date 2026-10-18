@@ -21,6 +21,7 @@ use App\Model\PriceHeader;
 use App\Model\SmsMarketing;
 use App\Model\MarketingImage;
 use App\Model\SmsOffer;
+use App\Model\SmsServicePage;
 use App\Model\Terms;
 use App\Model\Order; 
 use App\Model\MetaTag;
@@ -47,6 +48,8 @@ class FrontendController extends Controller
 
     $offer = Offer::orderBy('id', 'desc')->first();
 
+    $serviceLinks = SmsServicePage::links();
+
     // Lowest SMS rate across all packages (rows like "0.25 BDT"), shown in the homepage hero
     $startingPrice = Price::pluck('price')
         ->map(function ($price) {
@@ -55,7 +58,7 @@ class FrontendController extends Controller
         ->filter()
         ->min();
 
-    return view('frontend.index', compact('smsOffer', 'smsMarketing', 'marketingImage', 'whyChoose', 'offer', 'metaTag', 'article', 'startingPrice'));
+    return view('frontend.index', compact('smsOffer', 'smsMarketing', 'marketingImage', 'whyChoose', 'offer', 'metaTag', 'article', 'startingPrice', 'serviceLinks'));
   }
 
    public function price()
@@ -65,6 +68,33 @@ class FrontendController extends Controller
         $metaTag = MetaTag::where('nav', '/bulk-sms-service')->first();
         $article = Article::where('page', '/bulk-sms-service')->first();  // Add this line
         return view('frontend.price', compact('packages', 'priceHeader', 'metaTag', 'article'));
+    }
+
+    // Static "Rate" page under the SMS Services menu; the rate chart reads the live package prices
+    public function smsRate()
+    {
+        $packages = Package::with('prices')->orderBy('package_no', 'asc')->get();
+        $metaTag = SmsServicePage::metaFor('/bulk-sms-service/rate', [
+            'meta_title' => 'Bulk SMS Rate in Bangladesh | Masking & Non-Masking SMS Price',
+            'meta_description' => 'Compare masking and non-masking bulk SMS rates for every Felna DMA package. Bigger packages get a lower price per SMS.',
+        ]);
+        $article = Article::where('page', '/bulk-sms-service/rate')->first();
+        $serviceLinks = SmsServicePage::links('/bulk-sms-service/rate');
+        return view('frontend.sms_rate', compact('packages', 'metaTag', 'article', 'serviceLinks'));
+    }
+
+    // Admin-managed pages under the SMS Services menu
+    public function smsServicePage($slug)
+    {
+        $page = SmsServicePage::where('slug', $slug)->where('status', 1)->firstOrFail();
+        // Meta Tag admin entry for this URL wins; the page's own SEO fields fill any gaps
+        $metaTag = SmsServicePage::metaFor('/bulk-sms-service/'.$page->slug, [
+            'meta_title' => $page->meta_title ?: $page->title,
+            'meta_description' => $page->meta_description ?: $page->short_description,
+            'meta_keywords' => $page->meta_keywords,
+        ]);
+        $serviceLinks = SmsServicePage::links('/bulk-sms-service/'.$page->slug);
+        return view('frontend.sms_service_page', compact('page', 'metaTag', 'serviceLinks'));
     }
 
     // Step 1: Send OTP to user's phone
